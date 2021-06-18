@@ -1,40 +1,31 @@
 cmake_minimum_required(VERSION 3.15)
 
-# Set the project name to your project name, my project isn't very descriptive
-set(project_prefix template)
+# Set the project name to your project name, "my project" isn't very descriptive as a project can contain multiple distinct targets all grouped under an umbrella
 project(cpp_starter_project CXX)
+
+#set the name of the primary target for future reference. This will only exist in the "scope" of thise file
+set(primary_target_name test)
+
 include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-#to avoid collisions between different projects and their project options library the library is given a prefix and redered to by a variable
-#to mock having a scope if the variable refering to a project options library has been set then it will be restored at the end
-string(CONCAT project_options_regex ^ ${project_prefix})
-if(${project_options_library} MATCHES ${project_options_regex})
-  set(previous_project_options TRUE)
-  set(previous_project_options_value ${project_options_library})
-else()
-  set(previous_project_options FALSE)
-endif()
-
-string(CONCAT project_options_library ${project_prefix} _project_options)
-
 # Link this 'library' to set the c++ standard / compile-time options requested
-add_library(${project_options_library} INTERFACE)
+add_library(project_options INTERFACE)
 
 #set the c++ standard required
-target_compile_features(${project_options_library} INTERFACE cxx_std_20)
+target_compile_features(project_options INTERFACE cxx_std_20)
 
 #link pthreads for multithreading
 option(ENABLE_MULTITHREADING "Adds required linker option for using std::thread" ON)
 if(ENABLE_MULTITHREADING)
   find_package(Threads)
-  target_link_libraries(${project_options_library} INTERFACE ${CMAKE_THREAD_LIBS_INIT})
+  target_link_libraries(project_options INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   option(ENABLE_BUILD_WITH_TIME_TRACE "Enable -ftime-trace to generate time tracing .json files on clang" OFF)
   if(ENABLE_BUILD_WITH_TIME_TRACE)
-    target_compile_options(${project_options_library} INTERFACE -ftime-trace)
+    target_compile_options(project_options INTERFACE -ftime-trace)
   endif()
 endif()
 
@@ -46,11 +37,11 @@ include(cmake/Cache.cmake)
 
 # standard compiler warnings
 include(cmake/CompilerWarnings.cmake)
-set_project_warnings(${project_options_library})
+set_project_warnings(project_options)
 
 # sanitizer options if supported by compiler
 include(cmake/Sanitizers.cmake)
-enable_sanitizers(${project_options_library})
+enable_sanitizers(project_options)
 
 # allow for static analysis options
 include(cmake/StaticAnalyzers.cmake)
@@ -64,21 +55,17 @@ if(ENABLE_PCH)
   #
   # consider breaking this out per project as necessary
   target_precompile_headers(
-    ${project_options_library}
+    project_options
     INTERFACE
     <iostream>)
 endif()
 
 add_subdirectory(src)
-target_link_libraries(test PRIVATE ${project_options_library} project_warnings)
+target_link_libraries(${primary_target_name} PRIVATE project_options)
 
 #Speeds up compilation
 option(ENABLE_UNITY "Enable Unity builds of projects" ON)
 if(ENABLE_UNITY)
   # Add for any project you want to apply unity builds for
-  set_target_properties(test PROPERTIES UNITY_BUILD ON)
-endif()
-
-if(previous_project_options)
-  set(project_options_library ${previous_project_options_value})
+  set_target_properties(${primary_target_name} PROPERTIES UNITY_BUILD ON)
 endif()
