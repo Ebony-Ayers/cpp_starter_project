@@ -1,1 +1,0 @@
-/usr/bin/c++ -g CMakeFiles/test.dir/Unity/unity_0_cxx.cxx.o -o test  -lpthread 
