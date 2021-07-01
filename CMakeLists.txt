@@ -10,22 +10,23 @@ include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 # Link this 'library' to set the c++ standard / compile-time options requested
-add_library(project_options INTERFACE)
+string(CONCAT project_options_library ${primary_target_name} _project_options)
+add_library(${project_options_library} INTERFACE)
 
 #set the c++ standard required
-target_compile_features(project_options INTERFACE cxx_std_20)
+target_compile_features(${project_options_library} INTERFACE cxx_std_20)
 
 #link pthreads for multithreading
 option(ENABLE_MULTITHREADING "Adds required linker option for using std::thread" ON)
 if(ENABLE_MULTITHREADING)
   find_package(Threads)
-  target_link_libraries(project_options INTERFACE ${CMAKE_THREAD_LIBS_INIT})
+  target_link_libraries(${project_options_library} INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   option(ENABLE_BUILD_WITH_TIME_TRACE "Enable -ftime-trace to generate time tracing .json files on clang" OFF)
   if(ENABLE_BUILD_WITH_TIME_TRACE)
-    target_compile_options(project_options INTERFACE -ftime-trace)
+    target_compile_options(${project_options_library} INTERFACE -ftime-trace)
   endif()
 endif()
 
@@ -37,11 +38,11 @@ include(cmake/Cache.cmake)
 
 # standard compiler warnings
 include(cmake/CompilerWarnings.cmake)
-set_project_warnings(project_options)
+set_project_warnings(${project_options_library})
 
 # sanitizer options if supported by compiler
 include(cmake/Sanitizers.cmake)
-enable_sanitizers(project_options)
+enable_sanitizers(${project_options_library})
 
 # allow for static analysis options
 include(cmake/StaticAnalyzers.cmake)
@@ -55,13 +56,13 @@ if(ENABLE_PCH)
   #
   # consider breaking this out per project as necessary
   target_precompile_headers(
-    project_options
+    ${project_options_library}
     INTERFACE
     <iostream>)
 endif()
 
 add_subdirectory(src)
-target_link_libraries(${primary_target_name} PRIVATE project_options)
+target_link_libraries(${primary_target_name} PRIVATE ${project_options_library})
 
 #Speeds up compilation
 option(ENABLE_UNITY "Enable Unity builds of projects" ON)
